@@ -1,131 +1,108 @@
 import { config } from "../../package.json";
-import { getString } from "../utils/locale";
+import { getPref, setPref } from "../utils/prefs";
 
 export async function registerPrefsScripts(_window: Window) {
-  // This function is called when the prefs window is opened
-  // See addon/content/preferences.xhtml onpaneload
   if (!addon.data.prefs) {
-    addon.data.prefs = {
-      window: _window,
-      columns: [
-        {
-          dataKey: "title",
-          label: getString("prefs-table-title"),
-          fixedWidth: true,
-          width: 100,
-        },
-        {
-          dataKey: "detail",
-          label: getString("prefs-table-detail"),
-        },
-      ],
-      rows: [
-        {
-          title: "Orange",
-          detail: "It's juicy",
-        },
-        {
-          title: "Banana",
-          detail: "It's sweet",
-        },
-        {
-          title: "Apple",
-          detail: "I mean the fruit APPLE",
-        },
-      ],
-    };
+    addon.data.prefs = { window: _window };
   } else {
     addon.data.prefs.window = _window;
   }
-  updatePrefsUI();
   bindPrefEvents();
 }
 
-async function updatePrefsUI() {
-  // You can initialize some UI elements on prefs window
-  // with addon.data.prefs.window.document
-  // Or bind some events to the elements
-  const renderLock = ztoolkit.getGlobal("Zotero").Promise.defer();
-  if (addon.data.prefs?.window == undefined) return;
-  const tableHelper = new ztoolkit.VirtualizedTable(addon.data.prefs?.window)
-    .setContainerId(`${config.addonRef}-table-container`)
-    .setProp({
-      id: `${config.addonRef}-prefs-table`,
-      // Do not use setLocale, as it modifies the Zotero.Intl.strings
-      // Set locales directly to columns
-      columns: addon.data.prefs?.columns,
-      showHeader: true,
-      multiSelect: true,
-      staticColumns: true,
-      disableFontSizeScaling: true,
-    })
-    .setProp("getRowCount", () => addon.data.prefs?.rows.length || 0)
-    .setProp(
-      "getRowData",
-      (index) =>
-        addon.data.prefs?.rows[index] || {
-          title: "no data",
-          detail: "no data",
-        },
-    )
-    // Show a progress window when selection changes
-    .setProp("onSelectionChange", (selection) => {
-      new ztoolkit.ProgressWindow(config.addonName)
-        .createLine({
-          text: `Selected line: ${addon.data.prefs?.rows
-            .filter((v, i) => selection.isSelected(i))
-            .map((row) => row.title)
-            .join(",")}`,
-          progress: 100,
-        })
-        .show();
-    })
-    // When pressing delete, delete selected line and refresh table.
-    // Returning false to prevent default event.
-    .setProp("onKeyDown", (event: KeyboardEvent) => {
-      if (event.key == "Delete" || (Zotero.isMac && event.key == "Backspace")) {
-        addon.data.prefs!.rows =
-          addon.data.prefs?.rows.filter(
-            (v, i) => !tableHelper.treeInstance.selection.isSelected(i),
-          ) || [];
-        tableHelper.render();
-        return false;
+function bindPrefEvents() {
+  const doc = addon.data.prefs?.window.document;
+  if (!doc) return;
+
+  const fields = [
+    "provider",
+    "apikey",
+    "model",
+    "baseurl",
+    "wikipath",
+    "maxchars",
+    "language",
+  ];
+
+  for (const field of fields) {
+    const el = doc.querySelector(
+      `#zotero-prefpane-${config.addonRef}-${field}`,
+    );
+    if (!el) continue;
+
+    const tag = el.tagName.toLowerCase();
+    const eventType =
+      tag === "select" || tag === "menulist" ? "command" : "change";
+
+    // Set initial value from prefs
+    const currentVal = getPref(field);
+    if (currentVal !== undefined && currentVal !== null) {
+      if (tag === "select" || tag === "menulist") {
+        (el as HTMLSelectElement).value = String(currentVal);
+      } else {
+        (el as HTMLInputElement).value = String(currentVal);
       }
-      return true;
-    })
-    // For find-as-you-type
-    .setProp(
-      "getRowString",
-      (index) => addon.data.prefs?.rows[index].title || "",
-    )
-    // Render the table.
-    .render(-1, () => {
-      renderLock.resolve();
+    }
+
+    el.addEventListener(eventType, (e: Event) => {
+      const target = e.target as HTMLInputElement | HTMLSelectElement;
+      let value: string | number = target.value;
+      if (field === "maxchars") {
+        value = parseInt(value as string, 10) || 12000;
+      }
+      setPref(field, value);
+
+      // If provider changed, update model dropdown
+      if (field === "provider") {
+        updateModelForProvider(doc, value as string);
+      }
+
+      // If model changed, show/hide custom model input
+      if (field === "model") {
+        toggleCustomModelInput(doc, value as string);
+      }
     });
-  await renderLock.promise;
-  ztoolkit.log("Preference table rendered!");
+  }
+
+  // Initialize custom model input visibility
+  const currentModel = (getPref("model") as string) || "";
+  toggleCustomModelInput(doc, currentModel);
 }
 
-function bindPrefEvents() {
-  addon.data
-    .prefs!.window.document?.querySelector(
-      `#zotero-prefpane-${config.addonRef}-enable`,
-    )
-    ?.addEventListener("command", (e: Event) => {
-      ztoolkit.log(e);
-      addon.data.prefs!.window.alert(
-        `Successfully changed to ${(e.target as XUL.Checkbox).checked}!`,
-      );
-    });
+function updateModelForProvider(doc: Document, provider: string) {
+  const modelEl = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-model`,
+  ) as HTMLSelectElement;
+  if (!modelEl) return;
 
-  addon.data
-    .prefs!.window.document?.querySelector(
-      `#zotero-prefpane-${config.addonRef}-input`,
-    )
-    ?.addEventListener("change", (e: Event) => {
-      ztoolkit.log(e);
-      addon.data.prefs!.window.alert(
-        `Successfully changed to ${(e.target as HTMLInputElement).value}!`,
-      );
-    });
+  const defaultModels: Record<string, string> = {
+    minimax: "MiniMax-Text-01",
+    kimi: "kimi-k2.6",
+    deepseek: "deepseek-v4-pro",
+    openrouter: "anthropic/claude-sonnet-4.6",
+    openai: "gpt-5.5-pro",
+  };
+
+  const defaultModel = defaultModels[provider] || "gpt-5.5-pro";
+  modelEl.value = defaultModel;
+  setPref("model", defaultModel);
+  toggleCustomModelInput(doc, defaultModel);
+}
+
+function toggleCustomModelInput(doc: Document, model: string) {
+  const customRow = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-custom-model-row`,
+  ) as HTMLElement;
+  const customInput = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-custom-model`,
+  ) as HTMLInputElement;
+  
+  if (!customRow || !customInput) return;
+
+  if (model === "custom") {
+    customRow.style.display = "flex";
+    customInput.focus();
+  } else {
+    customRow.style.display = "none";
+  }
 }
