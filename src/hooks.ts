@@ -6,7 +6,9 @@ import { NoteExporter } from "./modules/noteExporter";
 import { MultiFormatExporter } from "./modules/multiFormatExporter";
 import { TopicResearcher } from "./modules/topicResearcher";
 import { AnnotationSync } from "./modules/annotationSync";
+import { MethodExtractor } from "./modules/methodExtractor";
 import { getPref } from "./utils/prefs";
+import { PathUtils } from "./utils/ioUtils";
 
 async function onStartup() {
   await Promise.all([
@@ -153,6 +155,17 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow) {
             onCommand: (_event, context) => {
               const items = context.items || [];
               onExportFormatFromItems(items, "latex");
+            },
+          },
+          {
+            menuType: "separator",
+          },
+          {
+            menuType: "menuitem",
+            l10nID: "zoterowiki-extract-methods",
+            onCommand: (_event, context) => {
+              const items = context.items || [];
+              onExtractMethodsFromItems(items);
             },
           },
           {
@@ -482,6 +495,58 @@ async function onPrefsEvent(type: string, data: { [key: string]: any }) {
   }
 }
 
+async function onExtractMethodsFromItems(items: Zotero.Item[]) {
+  try {
+    if (items.length === 0) {
+      new ztoolkit.ProgressWindow(addon.data.config.addonName)
+        .createLine({ text: "请先选择文献", type: "error" })
+        .show();
+      return;
+    }
+
+    // Prompt for research direction
+    const direction = await promptForInput("研究方法提取", "请输入调研方向（如：MOF膜气体分离）：", "");
+    if (!direction) return;
+
+    const llmConfig = {
+      provider: (getPref("provider") as string) || "minimax",
+      apiKey: (getPref("apikey") as string) || "",
+      model: (getPref("model") as string) || "",
+      baseUrl: (getPref("baseurl") as string) || "",
+      maxChars: parseInt(getPref("maxchars") as string) || 12000,
+      language: (getPref("language") as "zh" | "en") || "zh",
+    };
+
+    const extractor = new MethodExtractor(llmConfig.apiKey ? llmConfig : undefined);
+    await extractor.setDirection(direction);
+
+    new ztoolkit.ProgressWindow(addon.data.config.addonName)
+      .createLine({ text: `正在分析 "${direction}"...`, type: "default" })
+      .show();
+
+    const result = await extractor.extractMethodsFromItems(items);
+
+    // Export as Markdown
+    const md = MethodExtractor.exportAsMarkdown(result);
+    const outputDir = (getPref("wikipath") as string) || "";
+    if (outputDir) {
+      const filename = `${direction.replace(/[^\w\u4e00-\u9fa5]/g, "_")}_方法调研.md`;
+      const filePath = PathUtils.join(outputDir, filename);
+      await Zotero.File.putContentsAsync(filePath, md);
+
+      new ztoolkit.ProgressWindow(addon.data.config.addonName)
+        .createLine({ text: `提取完成！${result.allMethods.length} 个方法`, type: "default" })
+        .createLine({ text: `保存至: ${filename}`, type: "default" })
+        .show();
+    }
+  } catch (e: any) {
+    Zotero.debug(`Method extract error: ${e.message}`);
+    new ztoolkit.ProgressWindow(addon.data.config.addonName)
+      .createLine({ text: `Error: ${e.message}`, type: "error" })
+      .show();
+  }
+}
+
 async function onSyncAnnotationsFromItems(items: Zotero.Item[]) {
   try {
     if (items.length === 0) {
@@ -541,6 +606,7 @@ export default {
   onExportNotes,
   onExportFormat,
   onTopicResearch,
+  onExtractMethodsFromItems,
   onSyncAnnotationsFromItems,
   onExportDigestFromItems,
 };

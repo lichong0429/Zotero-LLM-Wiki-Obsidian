@@ -76,7 +76,9 @@ export class TopicResearcher {
       // Extract methods for this paper
       let methods: ExtractedMethod[] = [];
       try {
-        methods = await this.methodExtractor.extractMethods(item);
+        await this.methodExtractor.setDirection(topic);
+        const result = await this.methodExtractor.extractMethodsFromItems([item]);
+        methods = result.allMethods;
       } catch (e) {
         Zotero.debug(`[TopicResearch] Method extract failed for ${item.getField("title")}: ${e}`);
       }

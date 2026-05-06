@@ -70,6 +70,7 @@ export class MultiFormatExporter {
       language: (getPref("language") as "zh" | "en") || "zh",
     };
     const methodExtractor = new MethodExtractor(llmConfig.apiKey ? llmConfig : undefined);
+    await methodExtractor.setDirection("相关研究方法");
 
     for (const item of items) {
       if (item.isNote() || item.isAttachment()) continue;
@@ -87,7 +88,8 @@ export class MultiFormatExporter {
 
       // Extract methods
       try {
-        paper.methods = await methodExtractor.extractMethods(item);
+        const result = await methodExtractor.extractMethodsFromItems([item]);
+        paper.methods = result.allMethods;
       } catch (e) {
         Zotero.debug(`[MultiFormat] Method extract failed for ${paper.title}: ${e}`);
       }

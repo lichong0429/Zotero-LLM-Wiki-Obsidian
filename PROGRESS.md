@@ -1,7 +1,7 @@
 # Zotero Wiki Generator 插件开发进度
 
-**最后更新：** 2026-05-07 00:01
-**状态：** 编译通过 ✅，待测试
+**最后更新：** 2026-05-07 00:15
+**状态：** ✅ v1.0.0 全部完成 — 5项核心功能均已实现
 
 ---
 
@@ -14,14 +14,16 @@
 - [x] 设置页面更新（最新模型选项 + 自定义模型 + 参数说明）
 - [x] 依赖更新（zotero-plugin-scaffold 0.8.6, zotero-plugin-toolkit 5.1.2, zotero-types 4.1.2）
 
-### 2. 三个功能模块代码框架
+### 2. 五个功能模块全部实现
 
 #### 📁 文件位置
 ```
 /root/zotero-wiki-plugin/src/modules/
-├── noteExporter.ts          # 笔记批量导出
-├── multiFormatExporter.ts   # 多格式导出（PPT、思维导图、LaTeX）
-├── topicResearcher.ts       # 主题调研
+├── noteExporter.ts          # ✅ 笔记批量导出
+├── multiFormatExporter.ts   # ✅ 多格式导出（含研究方法）
+├── topicResearcher.ts       # ✅ 主题调研（含方法汇总）
+├── methodExtractor.ts       # ✅ 研究方法提取（NEW）
+├── annotationSync.ts        # ✅ 标注同步（NEW）
 ├── llmClient.ts            # LLM API 客户端
 ├── wikiGenerator.ts        # Wiki 生成（原有）
 └── obsidianWriter.ts       # Obsidian 写入（原有）
@@ -45,6 +47,22 @@
 - 从选中文献中提取相关内容
 - 用 LLM 生成调研报告
 - 输出为结构化 Markdown
+- ✅ 包含研究方法汇总章节
+
+**4. 研究方法提取 (methodExtractor.ts) — 方向驱动 v1.1**
+- **用户输入调研方向**（如"MOF膜气体分离"）
+- LLM 动态生成该方向的关键词和分类（10-20个关键词 + 3-5个分类）
+- 方向感知提取：只提取与方向相关的方法，过滤无关技术
+- 相关度评分（0-100），按类别分组汇总
+- 输出：调研总结 + 方法分类汇总 + 逐文献详情
+- 回退：无 LLM 时用方向分词做关键词匹配
+
+**5. 标注同步 (annotationSync.ts) — NEW**
+- 读取 Zotero PDF 标注（高亮+批注）
+- 按颜色编码导出为 Markdown
+- 每篇文献独立标注文件
+- 支持批量导出研读 Digest（按主题分组）
+- 适配 4000+ 笔记的大规模库
 
 ### 3. 菜单入口 (hooks.ts)
 ```typescript
@@ -104,25 +122,24 @@ if (item.isAttachment()) continue;
 
 ---
 
-## 📋 下一步计划
+## 📋 下一步计划（v1.0.0 已完成，进入测试阶段）
 
-### 优先级 1：修复编译错误
-- [ ] 修复 hooks.ts 的 prompt 调用
-- [ ] 修复 multiFormatExporter.ts 的类型检查
-- [ ] 修复 topicResearcher.ts 的类型检查
-- [ ] 测试编译通过
-
-### 优先级 2：测试功能
-- [ ] 测试笔记导出（保留图片）
-- [ ] 测试 PPT 大纲导出
-- [ ] 测试思维导图导出
+### 测试清单
+- [ ] 安装 XPI 到 Zotero 9，验证菜单显示
+- [ ] 测试笔记导出（保留图片、Zotero 链接）
+- [ ] 测试 PPT 大纲导出（含研究方法）
+- [ ] 测试思维导图导出（Markmap HTML）
 - [ ] 测试 LaTeX 表格导出
-- [ ] 测试主题调研功能
+- [ ] 测试主题调研（含方法汇总）
+- [ ] 测试研究方法提取（选 MOF/膜分离论文）
+- [ ] 测试标注同步（选有 PDF 高亮/批注的文献）
+- [ ] 测试批量导出 Digest（4000+ 笔记规模）
 
-### 优先级 3：优化
-- [ ] 添加进度条显示
-- [ ] 添加错误处理
-- [ ] 优化性能（大批量导出）
+### 可扩展项
+- [ ] 扩展 `CHEMISTRY_KEYWORDS` 和 `MATERIALS_KEYWORDS` 关键词库
+- [ ] 添加更多导出格式（Word、CSV）
+- [ ] 支持自定义标注颜色映射
+- [ ] 添加导出进度条（大批量处理时）
 
 ---
 

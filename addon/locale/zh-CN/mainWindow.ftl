@@ -22,6 +22,9 @@ zoterowiki-export-mindmap =
 zoterowiki-export-latex =
     .label = 导出LaTeX表格
 
+zoterowiki-extract-methods =
+    .label = 提取研究方向方法...
+
 zoterowiki-sync-annotations =
     .label = 同步标注到Markdown
 

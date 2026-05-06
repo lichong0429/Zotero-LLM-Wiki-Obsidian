@@ -26,6 +26,7 @@ export type FluentMessageId =
   | 'zoterowiki-export-mindmap'
   | 'zoterowiki-export-notes'
   | 'zoterowiki-export-ppt'
+  | 'zoterowiki-extract-methods'
   | 'zoterowiki-generate-collection'
   | 'zoterowiki-generate-selected'
   | 'zoterowiki-menu-label'
