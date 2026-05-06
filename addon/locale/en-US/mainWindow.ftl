@@ -22,5 +22,11 @@ zoterowiki-export-mindmap =
 zoterowiki-export-latex =
     .label = Export LaTeX Table
 
+zoterowiki-sync-annotations =
+    .label = Sync Annotations to Markdown
+
+zoterowiki-export-digest =
+    .label = Export Annotation Digest
+
 zoterowiki-topic-research =
     .label = Topic Research...

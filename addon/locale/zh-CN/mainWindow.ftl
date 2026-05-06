@@ -22,5 +22,11 @@ zoterowiki-export-mindmap =
 zoterowiki-export-latex =
     .label = 导出LaTeX表格
 
+zoterowiki-sync-annotations =
+    .label = 同步标注到Markdown
+
+zoterowiki-export-digest =
+    .label = 导出标注研读Digest
+
 zoterowiki-topic-research =
     .label = 主题调研...

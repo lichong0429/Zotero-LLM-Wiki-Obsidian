@@ -7,6 +7,7 @@
 import { getPref } from "../utils/prefs";
 import { PathUtils, IOUtils } from "../utils/ioUtils";
 import { LLMClient } from "./llmClient";
+import { MethodExtractor, ExtractedMethod } from "./methodExtractor";
 import { LLMConfig } from "../utils/types";
 
 interface ResearchResult {
@@ -14,23 +15,27 @@ interface ResearchResult {
   summary: string;
   sections: ResearchSection[];
   references: string[];
+  methods: ExtractedMethod[];
 }
 
 interface ResearchSection {
   title: string;
   content: string;
   papers: string[];
+  methods: ExtractedMethod[];
 }
 
 export class TopicResearcher {
   private llm: LLMClient;
   private outputDir: string;
   private language: "zh" | "en";
+  private methodExtractor: MethodExtractor;
 
   constructor(config: LLMConfig) {
     this.llm = new LLMClient(config);
     this.outputDir = (getPref("wikipath") as string) || "";
     this.language = config.language || "zh";
+    this.methodExtractor = new MethodExtractor(config.apiKey ? config : undefined);
 
     if (!this.outputDir) {
       throw new Error("Wiki output path not configured.");
@@ -41,32 +46,47 @@ export class TopicResearcher {
    * Research a topic from selected papers
    */
   async research(topic: string, items: Zotero.Item[]): Promise<void> {
-    // 1. Extract paper info
+    // 1. Extract paper info (with methods)
     const papers = await this.extractPaperInfo(items);
 
-    // 2. Generate research report via LLM
-    const report = await this.generateReport(topic, papers);
+    // 2. Collect all methods across papers
+    const allMethods: ExtractedMethod[] = [];
+    for (const p of papers) {
+      allMethods.push(...p.methods);
+    }
 
-    // 3. Save to file
+    // 3. Generate research report via LLM
+    const report = await this.generateReport(topic, papers, allMethods);
+
+    // 4. Save to file
     await this.saveReport(report);
   }
 
   /**
-   * Extract paper information
+   * Extract paper information (with methods)
    */
   private async extractPaperInfo(
     items: Zotero.Item[],
-  ): Promise<Array<{ title: string; authors: string; abstract: string; text: string }>> {
+  ): Promise<Array<{ title: string; authors: string; abstract: string; methods: ExtractedMethod[]; text: string }>> {
     const papers = [];
 
     for (const item of items) {
       if (item.isNote() || item.isAttachment()) continue;
 
+      // Extract methods for this paper
+      let methods: ExtractedMethod[] = [];
+      try {
+        methods = await this.methodExtractor.extractMethods(item);
+      } catch (e) {
+        Zotero.debug(`[TopicResearch] Method extract failed for ${item.getField("title")}: ${e}`);
+      }
+
       const paper = {
         title: item.getField("title") || "",
         authors: item.getField("firstCreator") || "",
         abstract: item.getField("abstractNote") || "",
-        text: "", // Could extract full text if needed
+        methods,
+        text: "",
       };
 
       papers.push(paper);
@@ -74,13 +94,10 @@ export class TopicResearcher {
 
     return papers;
   }
-
-  /**
-   * Generate research report via LLM
-   */
   private async generateReport(
     topic: string,
-    papers: Array<{ title: string; authors: string; abstract: string }>,
+    papers: Array<{ title: string; authors: string; abstract: string; methods: ExtractedMethod[] }>,
+    allMethods: ExtractedMethod[],
   ): Promise<ResearchResult> {
     const systemPrompt = this.language === "zh"
       ? `你是一个学术研究助手。请根据用户提供的论文信息，生成一份关于"${topic}"的研究报告。
@@ -98,7 +115,8 @@ export class TopicResearcher {
     {
       "title": "章节标题",
       "content": "章节内容",
-      "papers": ["相关论文标题"]
+      "papers": ["相关论文标题"],
+      "methods": ["相关方法"]
     }
   ]
 }`
@@ -117,18 +135,24 @@ Return in this JSON format:
     {
       "title": "Section title",
       "content": "Section content",
-      "papers": ["Related paper titles"]
+      "papers": ["Related paper titles"],
+      "methods": ["Related methods"]
     }
   ]
 }`;
 
+    // Build methods summary
+    const methodsSummary = allMethods.length > 0
+      ? `\n\n已提取的研究方法：\n${allMethods.map(m => `- ${m.methodName} (${m.category})`).join("\n")}`
+      : "";
+
     const papersInfo = papers
-      .map((p, i) => `${i + 1}. ${p.title} (${p.authors})\n   摘要: ${p.abstract}`)
+      .map((p, i) => `${i + 1}. ${p.title} (${p.authors})\n   摘要: ${p.abstract}${p.methods.length > 0 ? `\n   方法: ${p.methods.map(m => m.methodName).join(", ")}` : ""}`)
       .join("\n\n");
 
     const userPrompt = `请分析以下论文，生成关于"${topic}"的研究报告：
 
-${papersInfo}`;
+${papersInfo}${methodsSummary}`;
 
     let response = "";
     try {
@@ -138,8 +162,14 @@ ${papersInfo}`;
       return {
         topic,
         summary: result.summary || "",
-        sections: result.sections || [],
+        sections: (result.sections || []).map((s: any) => ({
+          title: s.title || "",
+          content: s.content || "",
+          papers: s.papers || [],
+          methods: [],
+        })),
         references: papers.map((p) => p.title),
+        methods: allMethods,
       };
     } catch (e: any) {
       // Fallback to simple report if JSON parsing fails
@@ -151,9 +181,11 @@ ${papersInfo}`;
             title: "研究概述",
             content: response || "暂无内容",
             papers: papers.map((p) => p.title),
+            methods: [],
           },
         ],
         references: papers.map((p) => p.title),
+        methods: allMethods,
       };
     }
   }
@@ -169,6 +201,23 @@ ${papersInfo}`;
     // Summary
     md += `## 概述\n\n`;
     md += `${report.summary}\n\n`;
+
+    // Methods summary
+    if (report.methods.length > 0) {
+      md += `## 研究方法汇总\n\n`;
+      const byCategory: Record<string, ExtractedMethod[]> = {};
+      for (const m of report.methods) {
+        if (!byCategory[m.category]) byCategory[m.category] = [];
+        byCategory[m.category].push(m);
+      }
+      for (const [cat, methods] of Object.entries(byCategory)) {
+        md += `### ${cat}\n\n`;
+        for (const m of methods) {
+          md += `- **${m.methodName}**${m.description ? ` — ${m.description}` : ""}\n`;
+        }
+        md += `\n`;
+      }
+    }
 
     // Sections
     for (const section of report.sections) {

@@ -5,6 +5,8 @@
 
 import { getPref } from "../utils/prefs";
 import { PathUtils, IOUtils } from "../utils/ioUtils";
+import { MethodExtractor, ExtractedMethod } from "./methodExtractor";
+import { LLMConfig } from "../utils/types";
 
 export type ExportFormat = "ppt" | "mindmap" | "latex";
 
@@ -15,7 +17,7 @@ interface PaperInfo {
   journal: string;
   doi: string;
   abstract: string;
-  methods: string[];
+  methods: ExtractedMethod[];
   findings: string[];
 }
 
@@ -53,10 +55,21 @@ export class MultiFormatExporter {
   }
 
   /**
-   * Extract paper information
+   * Extract paper information (with methods)
    */
   private async extractPaperInfo(items: Zotero.Item[]): Promise<PaperInfo[]> {
     const papers: PaperInfo[] = [];
+
+    // Build LLM config for method extraction
+    const llmConfig: LLMConfig = {
+      provider: (getPref("provider") as string) || "minimax",
+      apiKey: (getPref("apikey") as string) || "",
+      model: (getPref("model") as string) || "",
+      baseUrl: (getPref("baseurl") as string) || "",
+      maxChars: parseInt(getPref("maxchars") as string) || 12000,
+      language: (getPref("language") as "zh" | "en") || "zh",
+    };
+    const methodExtractor = new MethodExtractor(llmConfig.apiKey ? llmConfig : undefined);
 
     for (const item of items) {
       if (item.isNote() || item.isAttachment()) continue;
@@ -71,6 +84,13 @@ export class MultiFormatExporter {
         methods: [],
         findings: [],
       };
+
+      // Extract methods
+      try {
+        paper.methods = await methodExtractor.extractMethods(item);
+      } catch (e) {
+        Zotero.debug(`[MultiFormat] Method extract failed for ${paper.title}: ${e}`);
+      }
 
       papers.push(paper);
     }
@@ -155,7 +175,7 @@ export class MultiFormatExporter {
         if (p.methods.length > 0) {
           md += `- **方法：**\n`;
           for (const m of p.methods.slice(0, 3)) {
-            md += `  - ${m}\n`;
+            md += `  - ${m.methodName} (${m.category})\n`;
           }
         }
         md += `\n`;

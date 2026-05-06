@@ -21,6 +21,7 @@ export type FluentMessageId =
   | 'prefs-title'
   | 'startup-begin'
   | 'startup-finish'
+  | 'zoterowiki-export-digest'
   | 'zoterowiki-export-latex'
   | 'zoterowiki-export-mindmap'
   | 'zoterowiki-export-notes'
@@ -28,4 +29,5 @@ export type FluentMessageId =
   | 'zoterowiki-generate-collection'
   | 'zoterowiki-generate-selected'
   | 'zoterowiki-menu-label'
+  | 'zoterowiki-sync-annotations'
   | 'zoterowiki-topic-research';

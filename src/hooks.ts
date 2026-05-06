@@ -5,6 +5,7 @@ import { WikiGenerator } from "./modules/wikiGenerator";
 import { NoteExporter } from "./modules/noteExporter";
 import { MultiFormatExporter } from "./modules/multiFormatExporter";
 import { TopicResearcher } from "./modules/topicResearcher";
+import { AnnotationSync } from "./modules/annotationSync";
 import { getPref } from "./utils/prefs";
 
 async function onStartup() {
@@ -152,6 +153,25 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow) {
             onCommand: (_event, context) => {
               const items = context.items || [];
               onExportFormatFromItems(items, "latex");
+            },
+          },
+          {
+            menuType: "separator",
+          },
+          {
+            menuType: "menuitem",
+            l10nID: "zoterowiki-sync-annotations",
+            onCommand: (_event, context) => {
+              const items = context.items || [];
+              onSyncAnnotationsFromItems(items);
+            },
+          },
+          {
+            menuType: "menuitem",
+            l10nID: "zoterowiki-export-digest",
+            onCommand: (_event, context) => {
+              const items = context.items || [];
+              onExportDigestFromItems(items);
             },
           },
           {
@@ -462,6 +482,55 @@ async function onPrefsEvent(type: string, data: { [key: string]: any }) {
   }
 }
 
+async function onSyncAnnotationsFromItems(items: Zotero.Item[]) {
+  try {
+    if (items.length === 0) {
+      new ztoolkit.ProgressWindow(addon.data.config.addonName)
+        .createLine({ text: "请先选择文献", type: "error" })
+        .show();
+      return;
+    }
+
+    const syncer = new AnnotationSync();
+    await syncer.syncAnnotations(items);
+
+    new ztoolkit.ProgressWindow(addon.data.config.addonName)
+      .createLine({ text: "标注同步完成！", type: "default" })
+      .show();
+  } catch (e: any) {
+    Zotero.debug(`Annotation sync error: ${e.message}`);
+    new ztoolkit.ProgressWindow(addon.data.config.addonName)
+      .createLine({ text: `Error: ${e.message}`, type: "error" })
+      .show();
+  }
+}
+
+async function onExportDigestFromItems(items: Zotero.Item[]) {
+  try {
+    if (items.length === 0) {
+      new ztoolkit.ProgressWindow(addon.data.config.addonName)
+        .createLine({ text: "请先选择文献", type: "error" })
+        .show();
+      return;
+    }
+
+    const topic = await promptForInput("Wiki Generator", "请输入研读主题：", "文献研读");
+    if (!topic) return;
+
+    const syncer = new AnnotationSync();
+    await syncer.exportDigest(items, topic);
+
+    new ztoolkit.ProgressWindow(addon.data.config.addonName)
+      .createLine({ text: "研读 Digest 导出完成！", type: "default" })
+      .show();
+  } catch (e: any) {
+    Zotero.debug(`Digest export error: ${e.message}`);
+    new ztoolkit.ProgressWindow(addon.data.config.addonName)
+      .createLine({ text: `Error: ${e.message}`, type: "error" })
+      .show();
+  }
+}
+
 export default {
   onStartup,
   onShutdown,
@@ -472,4 +541,6 @@ export default {
   onExportNotes,
   onExportFormat,
   onTopicResearch,
+  onSyncAnnotationsFromItems,
+  onExportDigestFromItems,
 };
