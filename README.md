@@ -3,12 +3,14 @@
 [![Zotero](https://img.shields.io/badge/Zotero-9-green?style=flat-square&logo=zotero&logoColor=CC2936)](https://www.zotero.org)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square)](LICENSE)
 
+> ⚠️ **初代版本** — 功能尚未全面验证，使用前请备份重要数据。
+
 一键将 Zotero 文献通过大模型整理成结构化 Wiki 知识库，输出到 Obsidian。
 
 ## 功能
 
 - **右键菜单** 在 Zotero 文献列表右击，选择操作
-- **生成 Wiki** — 选中文献 / 整个收藏集 → LLM 提取核心信息 → 结构化 Markdown
+- **生成 Wiki** — 选中文献 / 整个收藏集 → 大模型提取核心信息 → 结构化 Markdown
 - **导出笔记** — 保留图片的笔记导出
 - **PPT 大纲 / 思维导图 / LaTeX 表格** — 多种格式导出
 - **研究方法提取** — 自动提取论文中的方法学信息
@@ -16,7 +18,7 @@
 - **研读 Digest** — 生成文献研读摘要
 - **主题调研** — 基于选定文献的主题分析
 
-## 支持的 LLM
+## 支持的大模型
 
 | 服务商 | 模型示例 |
 |--------|---------|
