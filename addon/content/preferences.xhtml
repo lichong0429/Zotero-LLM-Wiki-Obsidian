@@ -6,7 +6,7 @@
 
   <!-- Provider Selection -->
   <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-provider" style="min-width:120px" data-l10n-id="pref-provider"></html:label>
+    <label value="LLM 服务商" style="min-width:120px" />
     <html:select id="zotero-prefpane-__addonRef__-provider" preference="provider" style="flex:1">
       <html:option value="minimax">MiniMax</html:option>
       <html:option value="kimi">Kimi (Moonshot)</html:option>
@@ -18,13 +18,13 @@
 
   <!-- API Key -->
   <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-apikey" style="min-width:120px" data-l10n-id="pref-apikey"></html:label>
+    <label value="API Key" style="min-width:120px" />
     <html:input type="password" id="zotero-prefpane-__addonRef__-apikey" preference="apikey" placeholder="sk-..." style="flex:1" />
   </hbox>
 
   <!-- Model Selection -->
   <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-model" style="min-width:120px" data-l10n-id="pref-model"></html:label>
+    <label value="模型" style="min-width:120px" />
     <html:select id="zotero-prefpane-__addonRef__-model" preference="model" style="flex:1">
       <!-- MiniMax Models -->
       <html:option value="MiniMax-Text-01">MiniMax-Text-01 (默认)</html:option>
@@ -71,46 +71,46 @@
 
   <!-- Base URL -->
   <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-baseurl" style="min-width:120px" data-l10n-id="pref-baseurl"></html:label>
+    <label value="Base URL" style="min-width:120px" />
     <html:input type="text" id="zotero-prefpane-__addonRef__-baseurl" preference="baseurl" placeholder="留空使用默认地址" style="flex:1" />
   </hbox>
 
   <!-- Wiki Output Path -->
   <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-wikipath" style="min-width:120px" data-l10n-id="pref-wikipath"></html:label>
+    <label value="输出路径" style="min-width:120px" />
     <html:input type="text" id="zotero-prefpane-__addonRef__-wikipath" preference="wikipath" placeholder="E:\Obsidian\vault\wiki" style="flex:1" />
+    <html:button id="zotero-prefpane-__addonRef__-browse-btn" style="margin-left:8px;">浏览…</html:button>
   </hbox>
 
   <!-- Max Characters -->
   <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-maxchars" style="min-width:120px" data-l10n-id="pref-maxchars"></html:label>
+    <label value="最大字符数" style="min-width:120px" />
     <html:input type="number" id="zotero-prefpane-__addonRef__-maxchars" preference="maxchars" style="flex:1" />
   </hbox>
 
   <!-- Language -->
   <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-language" style="min-width:120px" data-l10n-id="pref-language"></html:label>
+    <label value="语言" style="min-width:120px" />
     <html:select id="zotero-prefpane-__addonRef__-language" preference="language" style="flex:1">
       <html:option value="zh">中文</html:option>
       <html:option value="en">English</html:option>
     </html:select>
   </hbox>
-</groupbox>
 
-<!-- Help Section -->
-<vbox style="margin-top:10px; padding:10px; background:#f5f5f5; border-radius:5px;">
-  <html:h3 style="margin:0 0 8px 0;">📖 参数说明</html:h3>
-  <html:ul style="margin:0; padding-left:20px; font-size:12px; line-height:1.6;">
-    <html:li><b>LLM 服务商</b>：选择你使用的 AI 服务商</html:li>
-    <html:li><b>API Key</b>：从服务商获取的密钥</html:li>
-    <html:li><b>模型</b>：选择模型会影响生成质量和速度。长上下文模型(128k/32k)适合处理长论文</html:li>
-    <html:li><b>自定义模型</b>：如果列表没有你的模型，选择"自定义"后输入模型ID</html:li>
-    <html:li><b>Base URL</b>：通常留空即可，自定义 API 代理才需要填写</html:li>
-    <html:li><b>Wiki 路径</b>：Obsidian 库中 wiki 文件夹的路径</html:li>
-    <html:li><b>最大字符数</b>：发送给 LLM 的论文文本长度上限(默认12000)</html:li>
-    <html:li><b>生成语言</b>：Wiki 页面使用中文还是英文</html:li>
-  </html:ul>
-</vbox>
+  <!-- Test Connection Button -->
+  <hbox align="center" style="margin-top:8px;">
+    <spacer style="flex:1" />
+    <html:button id="zotero-prefpane-__addonRef__-test-btn" style="padding:6px 20px;">🔌 检测模型可用性</html:button>
+    <spacer style="flex:1" />
+  </hbox>
+
+  <!-- Save Button -->
+  <hbox align="center" style="margin-top:8px;">
+    <spacer style="flex:1" />
+    <html:button id="zotero-prefpane-__addonRef__-save-btn" style="padding:6px 20px; font-weight:bold;">💾 保存参数</html:button>
+    <spacer style="flex:1" />
+  </hbox>
+</groupbox>
 
 <vbox>
   <html:label

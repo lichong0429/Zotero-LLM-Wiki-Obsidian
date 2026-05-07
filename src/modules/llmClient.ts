@@ -4,6 +4,7 @@
  */
 
 import { LLMConfig, PROVIDER_CONFIGS } from "../utils/types";
+import * as logger from "../utils/logger";
 
 export class LLMClient {
   private config: LLMConfig;
@@ -55,9 +56,7 @@ export class LLMClient {
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        Zotero.debug(
-          `[Wiki] LLM request attempt ${attempt + 1} to ${url}`,
-        );
+        logger.debug(`LLM request attempt ${attempt + 1}`, { url, model: body.model });
 
         const resp = await Zotero.HTTP.request("POST", url, {
           headers: {
@@ -70,20 +69,31 @@ export class LLMClient {
         });
 
         const data = resp.response;
+        logger.debug(`LLM response received`, { 
+          attempt: attempt + 1,
+          hasChoices: !!data?.choices,
+          hasDataChoices: !!data?.data?.choices 
+        });
+
         if (data?.choices?.[0]?.message?.content) {
-          return data.choices[0].message.content;
+          const content = data.choices[0].message.content;
+          logger.info(`LLM request succeeded`, { attempt: attempt + 1, contentLength: content.length });
+          return content;
         }
 
         // Some providers wrap in data
         if (data?.data?.choices?.[0]?.message?.content) {
-          return data.data.choices[0].message.content;
+          const content = data.data.choices[0].message.content;
+          logger.info(`LLM request succeeded (wrapped)`, { attempt: attempt + 1, contentLength: content.length });
+          return content;
         }
 
+        logger.warn(`Unexpected LLM response format`, { response: JSON.stringify(data).slice(0, 500) });
         throw new Error(
           `Unexpected response format: ${JSON.stringify(data).slice(0, 200)}`,
         );
       } catch (e: any) {
-        Zotero.debug(`[Wiki] LLM error (attempt ${attempt + 1}): ${e.message}`);
+        logger.error(`LLM request failed`, e, { attempt: attempt + 1, url });
         if (attempt === retries) {
           throw new Error(
             `LLM API failed after ${retries + 1} attempts: ${e.message}`,

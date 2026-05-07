@@ -11,57 +11,64 @@ import { getPref } from "./utils/prefs";
 import { PathUtils } from "./utils/ioUtils";
 
 async function onStartup() {
-  await Promise.all([
-    Zotero.initializationPromise,
-    Zotero.unlockPromise,
-    Zotero.uiReadyPromise,
-  ]);
+  try {
+    await Promise.all([
+      Zotero.initializationPromise,
+      Zotero.unlockPromise,
+      Zotero.uiReadyPromise,
+    ]);
 
-  initLocale();
+    initLocale();
 
-  // Register preference pane
-  Zotero.PreferencePanes.register({
-    pluginID: addon.data.config.addonID,
-    src: rootURI + "content/preferences.xhtml",
-    label: getString("prefs-title"),
-    image: `chrome://${addon.data.config.addonRef}/content/icons/favicon.png`,
-  });
+    // Register preference pane
+    Zotero.PreferencePanes.register({
+      pluginID: addon.data.config.addonID,
+      src: rootURI + "content/preferences.xhtml",
+      label: "Zotero Wiki Generator",
+      image: `chrome://${addon.data.config.addonRef}/content/icons/favicon.png`,
+    });
 
-  // Register notifier
-  const callback = {
-    notify: async (
-      event: string,
-      type: string,
-      ids: number[] | string[],
-      extraData: { [key: string]: any },
-    ) => {
-      if (!addon?.data.alive) {
-        Zotero.Notifier.unregisterObserver(notifierID);
-        return;
-      }
-    },
-  };
-  const notifierID = Zotero.Notifier.registerObserver(callback, [
-    "tab",
-    "item",
-  ]);
-  Zotero.Plugins.addObserver({
-    shutdown: ({ id }) => {
-      if (id === addon.data.config.addonID)
-        Zotero.Notifier.unregisterObserver(notifierID);
-    },
-  });
+    // Register notifier
+    const callback = {
+      notify: async (
+        event: string,
+        type: string,
+        ids: number[] | string[],
+        extraData: { [key: string]: any },
+      ) => {
+        if (!addon?.data.alive) {
+          Zotero.Notifier.unregisterObserver(notifierID);
+          return;
+        }
+      },
+    };
+    const notifierID = Zotero.Notifier.registerObserver(callback, [
+      "tab",
+      "item",
+    ]);
+    Zotero.Plugins.addObserver({
+      shutdown: ({ id }) => {
+        if (id === addon.data.config.addonID)
+          Zotero.Notifier.unregisterObserver(notifierID);
+      },
+    });
 
-  await Promise.all(
-    Zotero.getMainWindows().map((win) => onMainWindowLoad(win)),
-  );
+    await Promise.all(
+      Zotero.getMainWindows().map((win) => onMainWindowLoad(win)),
+    );
 
-  addon.data.initialized = true;
+    addon.data.initialized = true;
+    Zotero.debug("[Wiki] Startup complete");
+  } catch (e: any) {
+    Zotero.debug(`[Wiki] FATAL startup error: ${e.message}\n${e.stack}`);
+    // Do NOT rethrow — prevents plugin from being unregistered on restart
+  }
 }
 
 async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
   addon.data.ztoolkit = createZToolkit();
 
+  // Load FTL for XUL l10nID resolution (menu labels live in mainWindow.ftl)
   win.MozXULElement.insertFTLIfNeeded(
     `${addon.data.config.addonRef}-mainWindow.ftl`,
   );
@@ -92,7 +99,7 @@ async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
 function registerMenuItems(_win: _ZoteroTypes.MainWindow) {
   const menuIcon = `chrome://${addon.data.config.addonRef}/content/icons/favicon@0.5x.png`;
 
-  // Register menu via Zotero.MenuManager (Zotero 9 native API)
+  // v1.1.0 submenu approach — works in Zotero 9, just needed FTL keys in mainWindow.ftl
   Zotero.MenuManager.registerMenu({
     menuID: "zoterowiki-main-menu",
     pluginID: addon.data.config.addonID,
@@ -119,9 +126,7 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow) {
               onGenerateFromItems(items, "collection");
             },
           },
-          {
-            menuType: "separator",
-          },
+          { menuType: "separator" },
           {
             menuType: "menuitem",
             l10nID: "zoterowiki-export-notes",
@@ -130,9 +135,7 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow) {
               onExportNotesFromItems(items);
             },
           },
-          {
-            menuType: "separator",
-          },
+          { menuType: "separator" },
           {
             menuType: "menuitem",
             l10nID: "zoterowiki-export-ppt",
@@ -157,9 +160,7 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow) {
               onExportFormatFromItems(items, "latex");
             },
           },
-          {
-            menuType: "separator",
-          },
+          { menuType: "separator" },
           {
             menuType: "menuitem",
             l10nID: "zoterowiki-extract-methods",
@@ -168,9 +169,7 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow) {
               onExtractMethodsFromItems(items);
             },
           },
-          {
-            menuType: "separator",
-          },
+          { menuType: "separator" },
           {
             menuType: "menuitem",
             l10nID: "zoterowiki-sync-annotations",
@@ -187,9 +186,7 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow) {
               onExportDigestFromItems(items);
             },
           },
-          {
-            menuType: "separator",
-          },
+          { menuType: "separator" },
           {
             menuType: "menuitem",
             l10nID: "zoterowiki-topic-research",

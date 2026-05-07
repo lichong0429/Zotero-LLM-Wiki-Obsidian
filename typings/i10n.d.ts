@@ -4,11 +4,6 @@
 // @ts-nocheck
 export type FluentMessageId =
   | 'item-section-wiki-head-text'
-  | 'menuitem-generate-collection'
-  | 'menuitem-generate-collection-item'
-  | 'menuitem-generate-selected'
-  | 'menuitem-generate-single'
-  | 'menuitem-generate-wiki'
   | 'pref-apikey'
   | 'pref-baseurl'
   | 'pref-help'
@@ -18,9 +13,9 @@ export type FluentMessageId =
   | 'pref-provider'
   | 'pref-title'
   | 'pref-wikipath'
-  | 'prefs-title'
   | 'startup-begin'
   | 'startup-finish'
+  | 'zoterowiki-export-complete'
   | 'zoterowiki-export-digest'
   | 'zoterowiki-export-latex'
   | 'zoterowiki-export-mindmap'
@@ -29,6 +24,8 @@ export type FluentMessageId =
   | 'zoterowiki-extract-methods'
   | 'zoterowiki-generate-collection'
   | 'zoterowiki-generate-selected'
+  | 'zoterowiki-generating'
   | 'zoterowiki-menu-label'
+  | 'zoterowiki-no-items-selected'
   | 'zoterowiki-sync-annotations'
   | 'zoterowiki-topic-research';
