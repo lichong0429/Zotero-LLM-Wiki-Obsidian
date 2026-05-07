@@ -2,7 +2,7 @@
 
 **最后更新：** 2026-05-07 17:53
 **状态：** ⚠️ 用户切换模型处理中 — 当前 DeepSeek API 响应格式与插件解析逻辑不匹配，需换模型验证
-**构建产物：** `E:\24221\Desktop\zotero-wiki-generator-v1.1.16.xpi` (56KB)
+**构建产物：** `zotero-wiki-generator.xpi`
 
 ---
 
@@ -364,7 +364,7 @@ addon/locale/zh-CN/mainWindow.ftl
 - 插件源码：`/root/zotero-wiki-plugin/`
 - 构建命令：`npx zotero-plugin build`
 - 输出位置：`.scaffold/build/zotero-wiki-generator.xpi`
-- 用户桌面：`E:\24221\Desktop\`
+- 用户桌面路径
 
 ---
 

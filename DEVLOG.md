@@ -33,7 +33,7 @@ mainWindow.ftl → insertFTLIfNeeded → l10nID（XUL/MenuManager用）
 
 ### 4. 学习现有插件是最快的方法
 - 参考 Linter for Zotero (zotero-format-metadata@northword.cn)
-- 路径: `C:\Users\24221\AppData\Roaming\Zotero\Zotero\Profiles\7oetnw4z.default\extensions\`
+- 路径: `C:\Users\<user>\AppData\Roaming\Zotero\Zotero\Profiles\<profile>\extensions\`
 
 ## 教训
 - 不要瞎猜 API 行为，拆已知正常工作的插件对比
@@ -41,7 +41,7 @@ mainWindow.ftl → insertFTLIfNeeded → l10nID（XUL/MenuManager用）
 - read_file 输出带行号，不能用 execute_code 的 write_file 直接写回（会污染）
 
 ## 当前状态
-- **v1.1.21** 在桌面上 E:\24221\Desktop\
+- **v1.1.21** 在桌面上
 - 右键 submenu 显示（11个功能项）
 - Test Connection 通过
 - 插件重启后持久化
